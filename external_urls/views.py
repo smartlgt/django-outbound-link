@@ -12,10 +12,11 @@ class ExternalLinkView(RedirectView):
     permanent = False
 
     def dispatch(self, request, external_url, *args, **kwargs):
-        ip = request.META['REMOTE_ADDR']
+        ip = request.META.get('HTTP_X_FORWARDED_FOR') or request.META['REMOTE_ADDR']
+        # TODO HTTP_X_FORWARDED_FOR can contains a list of comma separated IP addresses
         if six.PY2:
             self.url = base64.decodestring(external_url)
         elif six.PY3:
             self.url = base64.decodebytes(bytes(external_url, 'utf-8')).decode('utf-8')
-        external_click.send_robust(sender=self.__class__, url=self.url, ip=ip)
+        external_click.send_robust(sender=self.__class__, url=self.url, ip=ip, request=request)
         return super(ExternalLinkView, self).dispatch(request, *args, **kwargs)
